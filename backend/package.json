@@ -1,0 +1,22 @@
+{
+  "name": "coop-gig-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Cooperative Gig Services Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "razorpay": "^2.9.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

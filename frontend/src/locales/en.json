@@ -1,0 +1,17 @@
+{
+  "appTitle": "Cooperative Gig Services",
+  "nav": {
+    "home": "Home",
+    "booking": "Book a Service",
+    "dashboard": "Admin Dashboard"
+  },
+  "booking": {
+    "heading": "Book a Household Service",
+    "serviceType": "Service Type",
+    "address": "Address",
+    "scheduleDate": "Preferred Date & Time",
+    "emergency": "Emergency / On-demand booking",
+    "submit": "Confirm Booking",
+    "success": "Booking created successfully!"
+  }
+}
