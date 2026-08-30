@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://onrender.com'
+  baseURL: 'https://cgp-backend.onrender.com'
 });
 
 // Sample function consumed by BookingForm component
