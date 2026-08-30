@@ -61,17 +61,26 @@ const createBooking = async (req, res) => {
 const getBookings = async (req, res) => {
   try {
     const filter = {};
-    if (req.query.customerId) filter.customer = req.query.customerId;
-    if (req.query.workerId) filter.worker = req.query.workerId;
+
+    if (req.query.customerId) {
+      filter.customer = req.query.customerId;
+    }
+
+    if (req.query.workerId) {
+      filter.worker = req.query.workerId;
+    }
 
     const bookings = await Booking.find(filter)
-      .populate('customer', 'name phone')
-      .populate('worker')
       .sort({ createdAt: -1 });
 
-    res.json(bookings);
+    res.status(200).json(bookings);
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching bookings', error: err.message });
+    console.error('Error fetching bookings:', err);
+
+    res.status(500).json({
+      message: 'Server error fetching bookings',
+      error: err.message
+    });
   }
 };
 
