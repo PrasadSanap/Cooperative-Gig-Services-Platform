@@ -6,6 +6,10 @@ const {
   generateInvoiceNumber
 } = require('../utils/payment');
 
+const {
+  createNotification
+} = require('../utils/notificationHelper');
+
 
 // ============================================================
 // CREATE BOOKING
@@ -61,7 +65,6 @@ const createBooking = async (req, res) => {
 
     let matchingWorker = null;
 
-
     // ----------------------------------------------------
     // STEP 1: Try to find the nearest matching worker
     // ----------------------------------------------------
@@ -95,7 +98,6 @@ const createBooking = async (req, res) => {
       );
     }
 
-
     // ----------------------------------------------------
     // STEP 2: If no nearby worker found,
     // find ANY available verified worker
@@ -114,7 +116,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-
     // ----------------------------------------------------
     // STEP 3: Create payment order
     // ----------------------------------------------------
@@ -122,7 +123,6 @@ const createBooking = async (req, res) => {
     const paymentOrder = await createPaymentOrder(
       amount || 500
     );
-
 
     // ----------------------------------------------------
     // STEP 4: Create booking
@@ -163,9 +163,52 @@ const createBooking = async (req, res) => {
       }
     });
 
+    // ----------------------------------------------------
+    // STEP 5: Create notification for customer
+    // ----------------------------------------------------
+
+    await createNotification({
+      recipient: customerId,
+
+      type: matchingWorker
+        ? 'booking_confirmed'
+        : 'booking_created',
+
+      title: matchingWorker
+        ? 'Booking Confirmed'
+        : 'Booking Created',
+
+      message: matchingWorker
+        ? 'Your service booking has been confirmed and a worker has been assigned.'
+        : 'Your service booking has been created and is waiting for worker assignment.',
+
+      booking: booking._id
+    });
 
     // ----------------------------------------------------
-    // STEP 5: Response
+    // STEP 6: Notify automatically assigned worker
+    // ----------------------------------------------------
+
+    if (
+      matchingWorker &&
+      matchingWorker.user
+    ) {
+      await createNotification({
+        recipient: matchingWorker.user,
+
+        type: 'worker_assigned',
+
+        title: 'New Booking Assigned',
+
+        message:
+          'A new service booking has been assigned to you.',
+
+        booking: booking._id
+      });
+    }
+
+    // ----------------------------------------------------
+    // STEP 7: Response
     // ----------------------------------------------------
 
     res.status(201).json({
@@ -311,7 +354,6 @@ const getBookingById = async (req, res) => {
       });
     }
 
-
     // ----------------------------------------------------
     // Customer can only view their own booking
     // ----------------------------------------------------
@@ -325,7 +367,6 @@ const getBookingById = async (req, res) => {
           'You can only view your own bookings'
       });
     }
-
 
     // ----------------------------------------------------
     // Worker can only view bookings assigned to them
@@ -532,6 +573,34 @@ const assignWorkerToBooking = async (
 
     await booking.save();
 
+    // ----------------------------------------------------
+    // Notify customer about worker assignment
+    // ----------------------------------------------------
+
+    await createNotification({
+      recipient: booking.customer,
+      type: 'worker_assigned',
+      title: 'Worker Assigned',
+      message:
+        'A worker has been assigned to your service booking.',
+      booking: booking._id
+    });
+
+    // ----------------------------------------------------
+    // Notify assigned worker
+    // ----------------------------------------------------
+
+    if (worker.user) {
+      await createNotification({
+        recipient: worker.user,
+        type: 'worker_assigned',
+        title: 'New Booking Assigned',
+        message:
+          'A new service booking has been assigned to you.',
+        booking: booking._id
+      });
+    }
+
     const updatedBooking =
       await Booking.findById(
         booking._id
@@ -632,9 +701,66 @@ const updateBookingStatus = async (
       }
     }
 
+    const previousStatus = booking.status;
+
     booking.status = status;
 
     await booking.save();
+
+    // ----------------------------------------------------
+    // Create notification for customer
+    // ----------------------------------------------------
+
+    if (
+      booking.customer &&
+      previousStatus !== status
+    ) {
+      let notificationType = null;
+      let notificationTitle = null;
+      let notificationMessage = null;
+
+      if (status === 'in_progress') {
+        notificationType = 'booking_started';
+        notificationTitle = 'Service Started';
+        notificationMessage =
+          'Your service booking has now started.';
+      }
+
+      if (status === 'completed') {
+        notificationType = 'booking_completed';
+        notificationTitle = 'Service Completed';
+        notificationMessage =
+          'Your service booking has been completed successfully.';
+      }
+
+      if (status === 'cancelled') {
+        notificationType = 'booking_cancelled';
+        notificationTitle = 'Booking Cancelled';
+        notificationMessage =
+          'Your service booking has been cancelled.';
+      }
+
+      if (status === 'confirmed') {
+        notificationType = 'booking_confirmed';
+        notificationTitle = 'Booking Confirmed';
+        notificationMessage =
+          'Your service booking has been confirmed.';
+      }
+
+      if (
+        notificationType &&
+        notificationTitle &&
+        notificationMessage
+      ) {
+        await createNotification({
+          recipient: booking.customer,
+          type: notificationType,
+          title: notificationTitle,
+          message: notificationMessage,
+          booking: booking._id
+        });
+      }
+    }
 
     res.status(200).json({
       message:
@@ -683,7 +809,6 @@ const cancelBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Ownership check
     // ----------------------------------------------------
@@ -698,7 +823,6 @@ const cancelBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Already cancelled
     // ----------------------------------------------------
@@ -709,7 +833,6 @@ const cancelBooking = async (
           'This booking is already cancelled'
       });
     }
-
 
     // ----------------------------------------------------
     // Completed / in-progress bookings
@@ -734,7 +857,6 @@ const cancelBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Cancellation reason
     // ----------------------------------------------------
@@ -751,7 +873,6 @@ const cancelBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Update cancellation information
     // ----------------------------------------------------
@@ -766,6 +887,26 @@ const cancelBooking = async (
 
     await booking.save();
 
+    // ----------------------------------------------------
+    // Notify assigned worker
+    // ----------------------------------------------------
+
+    if (booking.worker) {
+      const worker = await Worker.findById(
+        booking.worker
+      );
+
+      if (worker && worker.user) {
+        await createNotification({
+          recipient: worker.user,
+          type: 'booking_cancelled',
+          title: 'Booking Cancelled',
+          message:
+            'A customer has cancelled a booking assigned to you.',
+          booking: booking._id
+        });
+      }
+    }
 
     // ----------------------------------------------------
     // Response
@@ -808,7 +949,6 @@ const rescheduleBooking = async (
       reason
     } = req.body;
 
-
     // ----------------------------------------------------
     // Validate new scheduled time
     // ----------------------------------------------------
@@ -834,7 +974,6 @@ const rescheduleBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // New date must be in the future
     // ----------------------------------------------------
@@ -848,7 +987,6 @@ const rescheduleBooking = async (
           'New scheduled date and time must be in the future'
       });
     }
-
 
     // ----------------------------------------------------
     // Find booking
@@ -865,7 +1003,6 @@ const rescheduleBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Ownership check
     // ----------------------------------------------------
@@ -880,7 +1017,6 @@ const rescheduleBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Cannot reschedule cancelled booking
     // ----------------------------------------------------
@@ -891,7 +1027,6 @@ const rescheduleBooking = async (
           'A cancelled booking cannot be rescheduled'
       });
     }
-
 
     // ----------------------------------------------------
     // Cannot reschedule in-progress booking
@@ -906,7 +1041,6 @@ const rescheduleBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Cannot reschedule completed booking
     // ----------------------------------------------------
@@ -919,7 +1053,6 @@ const rescheduleBooking = async (
           'A completed booking cannot be rescheduled'
       });
     }
-
 
     // ----------------------------------------------------
     // Reason validation
@@ -937,7 +1070,6 @@ const rescheduleBooking = async (
       });
     }
 
-
     // ----------------------------------------------------
     // Save old schedule in history
     // ----------------------------------------------------
@@ -953,7 +1085,6 @@ const rescheduleBooking = async (
       changedAt: new Date()
     });
 
-
     // ----------------------------------------------------
     // Update booking schedule
     // ----------------------------------------------------
@@ -963,6 +1094,26 @@ const rescheduleBooking = async (
 
     await booking.save();
 
+    // ----------------------------------------------------
+    // Notify assigned worker
+    // ----------------------------------------------------
+
+    if (booking.worker) {
+      const worker = await Worker.findById(
+        booking.worker
+      );
+
+      if (worker && worker.user) {
+        await createNotification({
+          recipient: worker.user,
+          type: 'booking_rescheduled',
+          title: 'Booking Rescheduled',
+          message:
+            'A customer has rescheduled a booking assigned to you.',
+          booking: booking._id
+        });
+      }
+    }
 
     // ----------------------------------------------------
     // Response
@@ -1156,6 +1307,19 @@ const markPaymentAsPaid = async (
     booking.payment.status = 'paid';
 
     await booking.save();
+
+    // ----------------------------------------------------
+    // Notify customer about completed payment
+    // ----------------------------------------------------
+
+    await createNotification({
+      recipient: booking.customer,
+      type: 'payment_completed',
+      title: 'Payment Completed',
+      message:
+        'Your payment for the service booking has been completed successfully.',
+      booking: booking._id
+    });
 
     res.status(200).json({
       message:

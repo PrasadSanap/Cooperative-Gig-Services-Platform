@@ -4,6 +4,8 @@ const {
   getAdminStats,
   getAllWorkers,
   verifyWorker,
+  unverifyWorker,
+  updateWorkerAvailability,
   getAllBookings,
   assignWorker,
   updateAdminBookingStatus
@@ -16,12 +18,20 @@ const {
 
 const router = express.Router();
 
+// ----------------------------------------------------
+// Admin Statistics
+// ----------------------------------------------------
+
 router.get(
   '/stats',
   protect,
   authorize('admin'),
   getAdminStats
 );
+
+// ----------------------------------------------------
+// Worker Management
+// ----------------------------------------------------
 
 router.get(
   '/workers',
@@ -36,6 +46,25 @@ router.put(
   authorize('admin'),
   verifyWorker
 );
+
+router.put(
+  '/workers/:workerId/unverify',
+  protect,
+  authorize('admin'),
+  unverifyWorker
+);
+
+// Update worker availability
+router.put(
+  '/workers/:workerId/availability',
+  protect,
+  authorize('admin'),
+  updateWorkerAvailability
+);
+
+// ----------------------------------------------------
+// Booking Management
+// ----------------------------------------------------
 
 router.get(
   '/bookings',

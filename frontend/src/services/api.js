@@ -19,6 +19,10 @@ api.interceptors.request.use(
   }
 );
 
+// ======================================================
+// BOOKING APIs
+// ======================================================
+
 export const createBooking = (bookingData) =>
   api.post('/bookings', bookingData);
 
@@ -34,7 +38,10 @@ export const submitFeedback = (bookingId, feedbackData) =>
 export const markPaymentAsPaid = (bookingId) =>
   api.patch(`/bookings/${bookingId}/payment`);
 
-// Admin APIs
+// ======================================================
+// ADMIN APIs
+// ======================================================
+
 export const getAdminStats = () =>
   api.get('/admin/stats');
 
@@ -44,17 +51,80 @@ export const getAdminWorkers = () =>
 export const verifyWorker = (workerId) =>
   api.put(`/admin/workers/${workerId}/verify`);
 
+export const unverifyWorker = (workerId) =>
+  api.put(`/admin/workers/${workerId}/unverify`);
+
+// Update worker availability
+export const updateWorkerAvailability = (
+  workerId,
+  availability
+) =>
+  api.put(
+    `/admin/workers/${workerId}/availability`,
+    {
+      availability
+    }
+  );
+
 export const getAdminBookings = () =>
   api.get('/admin/bookings');
 
-export const assignWorker = (bookingId, workerId) =>
-  api.patch(`/admin/bookings/${bookingId}/assign`, {
-    workerId
-  });
+export const assignWorker = (
+  bookingId,
+  workerId
+) =>
+  api.patch(
+    `/admin/bookings/${bookingId}/assign`,
+    {
+      workerId
+    }
+  );
 
-export const updateAdminBookingStatus = (bookingId, status) =>
-  api.patch(`/admin/bookings/${bookingId}/status`, {
-    status
-  });
+export const updateAdminBookingStatus = (
+  bookingId,
+  status
+) =>
+  api.patch(
+    `/admin/bookings/${bookingId}/status`,
+    {
+      status
+    }
+  );
+
+// ======================================================
+// NOTIFICATION APIs
+// ======================================================
+
+// Get all notifications
+export const getNotifications = () =>
+  api.get('/notifications');
+
+// Get unread notification count
+export const getUnreadNotificationCount = () =>
+  api.get('/notifications/unread-count');
+
+// Mark one notification as read
+export const markNotificationAsRead = (
+  notificationId
+) =>
+  api.patch(
+    `/notifications/${notificationId}/read`
+  );
+
+// Mark all notifications as read
+export const markAllNotificationsAsRead = () =>
+  api.patch('/notifications/read-all');
+
+// Delete one notification
+export const deleteNotification = (
+  notificationId
+) =>
+  api.delete(
+    `/notifications/${notificationId}`
+  );
+
+// ======================================================
+// DEFAULT API
+// ======================================================
 
 export default api;

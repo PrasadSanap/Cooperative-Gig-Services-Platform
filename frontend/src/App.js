@@ -16,6 +16,7 @@ import WorkerDashboard from './pages/WorkerDashboard';
 import MyBookings from './pages/MyBookings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Notifications from './components/Notifications';
 
 const App = () => (
   <BrowserRouter>
@@ -57,6 +58,22 @@ const App = () => (
         element={
           <ProtectedRoute allowedRoles={['customer']}>
             <MyBookings />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Notifications */}
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute
+            allowedRoles={[
+              'customer',
+              'worker',
+              'admin'
+            ]}
+          >
+            <Notifications />
           </ProtectedRoute>
         }
       />
