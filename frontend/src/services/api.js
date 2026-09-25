@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const API_BASE_URL =
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : 'https://cgp-backend.onrender.com/api';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: API_BASE_URL
 });
 
 api.interceptors.request.use(
@@ -32,8 +38,14 @@ export const getBookings = (params) =>
 export const getMyBookings = () =>
   api.get('/bookings/my-bookings');
 
-export const submitFeedback = (bookingId, feedbackData) =>
-  api.post(`/bookings/${bookingId}/feedback`, feedbackData);
+export const submitFeedback = (
+  bookingId,
+  feedbackData
+) =>
+  api.post(
+    `/bookings/${bookingId}/feedback`,
+    feedbackData
+  );
 
 export const markPaymentAsPaid = (bookingId) =>
   api.patch(`/bookings/${bookingId}/payment`);
